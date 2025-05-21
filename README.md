@@ -28,6 +28,7 @@ Conecta el sensor DHT11 al ESP32 de la siguiente manera:
 
 ### Captura de la Conexion
 ![Conexion DHT11 a ESP32](images/dht11_esp32_connection.png)
+
 _Nota: Asegurate de que el pin DATA del DHT11 este conectado al GPIO 4 (o al pin que configures en `main.py`)._
 
 ## Instalacion y Configuracion
@@ -61,13 +62,16 @@ Sube los siguientes archivos a la raiz de tu microcontrolador.
 * `main.py`
 * `index.html`
 
-(images/CapIDE.png)
-(images/APItempHum.png)
-(images/TempHumPC.png)
-(images/APItempTablet.jpg)
+![captura del ide](images/CapIDE.png)
+
+![Captura de la API](images/APItempHum.png)
+
+![Captura en PC](images/TempHumPC.png)
+
+![Captura en tablet](images/APItempTablet.jpg)
 
 Temas relacionados
 [Video : Descargar e instalar Thonny y firmware para ESP32](https://www.youtube.com/watch?v=3Yl2hgGaKy0&ab_channel=Ing.RMHG)
-* Incluye el codigo de ejemplo de blink para hacer pruebas
+* Incluye el codigo de ejemplo de Blink.py para hacer pruebas
 
 [Video : Manejando el DHT11 con ESP32 en Micropytho](https://www.youtube.com/watch?v=k0yW6oyLC7I&ab_channel=CreatividadAhora)
