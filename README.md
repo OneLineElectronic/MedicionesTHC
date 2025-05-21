@@ -62,13 +62,17 @@ Sube los siguientes archivos a la raiz de tu microcontrolador.
 * `main.py`
 * `index.html`
 
-![captura del ide](images/CapIDE.png)
+### Captura del IDE
+![captura del ide](images/capIDE.png)
 
+### Captura de la API
 ![Captura de la API](images/APItempHum.png)
 
+### Captura de PC
 ![Captura en PC](images/TempHumPC.png)
 
-![Captura en tablet](images/APItempTablet.jpg)
+### Captura de Tablet
+![Captura en tablet](images/TempHumTablet.jpg)
 
 Temas relacionados
 [Video : Descargar e instalar Thonny y firmware para ESP32](https://www.youtube.com/watch?v=3Yl2hgGaKy0&ab_channel=Ing.RMHG)
