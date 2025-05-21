@@ -1,6 +1,6 @@
 # Monitor de Temperatura y Humedad con MicroPython y Microdot
 
-Este proyecto implementa un monitor web de temperatura y humedad utilizando un ESP32 (o microcontrolador compatible con MicroPython), un sensor DHT11, y el micro-framework web Microdot. La interfaz web, con tema oscuro y graficas en tiempo real, permite visualizar los datos del sensor de forma sencilla y sin necesidad de librerias externas de graficacion ni conexion a internet para su operacion.
+Este proyecto implementa un monitor web de temperatura y humedad utilizando un ESP32 (o microcontrolador compatible con MicroPython), un sensor DHT11, y el micro-framework web Microdot. La interfaz web, permite visualizar los datos del sensor de forma sencilla y sin necesidad de librerias externas de graficacion ni conexion a internet para su operacion.
 
 ## Caracteristicas
 
@@ -74,4 +74,4 @@ Temas relacionados
 [Video : Descargar e instalar Thonny y firmware para ESP32](https://www.youtube.com/watch?v=3Yl2hgGaKy0&ab_channel=Ing.RMHG)
 * Incluye el codigo de ejemplo de Blink.py para hacer pruebas
 
-[Video : Manejando el DHT11 con ESP32 en Micropytho](https://www.youtube.com/watch?v=k0yW6oyLC7I&ab_channel=CreatividadAhora)
+[Video : Manejando el DHT11 con ESP32 en Micropython](https://www.youtube.com/watch?v=k0yW6oyLC7I&ab_channel=CreatividadAhora)
