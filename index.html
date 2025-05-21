@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DHT11 Monitor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <style>
+        /* CSS para el tema oscuro */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a; /* Fondo oscuro */
+            color: #f0f0f0; /* Texto claro */
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh; /* Asegura que el body ocupe al menos toda la altura de la vista */
+            box-sizing: border-box; /* Incluye padding y border en el tamaño total */
+        }
+        h1 {
+            color: #61dafb; /* Color de acento para el titulo */
+            font-size: 1.8em; /* Ajuste para pantallas pequeñas */
+            margin-bottom: 15px;
+        }
+        h2 {
+            font-size: 1.5em; /* Ajuste para pantallas pequeñas */
+            margin-bottom: 10px;
+        }
+        .container {
+            background-color: #2b2b2b; /* Contenedor mas oscuro */
+            padding: 20px; /* Reducir padding para pantallas pequeñas */
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            width: 100%; /* Ocupa todo el ancho disponible */
+            max-width: 800px; /* Limite maximo de ancho */
+            margin-bottom: 20px;
+            text-align: center;
+            box-sizing: border-box; /* Incluye padding y border en el tamaño total */
+        }
+        canvas {
+            background-color: #3a3a3a; /* Fondo del canvas */
+            border: 1px solid #555;
+            border-radius: 5px;
+            display: block;
+            margin: 10px auto;
+            width: 100%; /* El canvas ocupara el 100% del ancho de su contenedor */
+            height: auto; /* La altura se ajustara automaticamente manteniendo la relacion de aspecto */
+            max-width: 700px; /* Limite maximo de ancho para el canvas */
+        }
+        .data-display {
+            font-size: 1.1em; /* Ajuste para pantallas pequeñas */
+            margin-top: 10px;
+        }
+        .data-display span {
+            font-weight: bold;
+            color: #a9f0d1; /* Color para los datos */
+        }
+
+        /* Media Queries para pantallas mas pequeñas */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px; /* Menos padding en los bordes en moviles */
+            }
+            .container {
+                padding: 15px; /* Menos padding en los contenedores */
+                margin-bottom: 15px;
+            }
+            h1 {
+                font-size: 1.5em;
+            }
+            h2 {
+                font-size: 1.2em;
+            }
+            .data-display {
+                font-size: 1em;
+            }
+            /* Ajustes para el canvas en pantallas muy pequeñas, si es necesario */
+            canvas {
+                height: 200px; /* Altura fija mas pequeña para moviles si se requiere */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Monitor de Temperatura y Humedad DHT11</h1>
+        <div class="data-display">
+            Temperatura: <span id="temperature">--.--</span> C<br>
+            Humedad: <span id="humidity">--.--</span> %
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Temperatura</h2>
+        <canvas id="temperatureChart"></canvas> </div>
+
+    <div class="container">
+        <h2>Humedad</h2>
+        <canvas id="humidityChart"></canvas> </div>
+
+    <script>
+        const temperatureSpan = document.getElementById('temperature');
+        const humiditySpan = document.getElementById('humidity');
+
+        const temperatureCanvas = document.getElementById('temperatureChart');
+        const tempCtx = temperatureCanvas.getContext('2d');
+
+        const humidityCanvas = document.getElementById('humidityChart');
+        const humCtx = humidityCanvas.getContext('2d');
+
+        // Variables para almacenar los datos historicos para las graficas
+        let temperatureData = [];
+        let humidityData = [];
+        let timestamps = [];
+        const MAX_DATA_POINTS = 20; // Numero maximo de puntos en la grafica
+        const UPDATE_INTERVAL = 5000; // 5 segundos en milisegundos
+
+        // Funcion para establecer el tamaño del canvas de forma dinamica
+        function setCanvasSize(canvas) {
+            // Establece el width del canvas a su ancho computado (del CSS)
+            canvas.width = canvas.offsetWidth;
+            // Mantener una relacion de aspecto, por ejemplo, 2:1 (ancho:alto)
+            // O un valor fijo si se desea, como se hace en el CSS con `height: auto`
+            canvas.height = canvas.offsetWidth * 0.5; // Relacion 2:1, ajustar segun preferencia
+            // Si el CSS ya tiene `height: auto` y un `max-width`, esto es solo para inicializar el tamaño interno
+            // y para que el redibujado sea correcto al cambiar tamaño de ventana.
+            // Para mantener la altura fija del CSS (e.g. 250px para desktop, 200px para movil):
+            // canvas.height = parseFloat(getComputedStyle(canvas).height);
+        }
+
+        // Llamar a setCanvasSize al cargar y al redimensionar la ventana
+        window.addEventListener('resize', () => {
+            setCanvasSize(temperatureCanvas);
+            setCanvasSize(humidityCanvas);
+            // Volver a dibujar las graficas despues de redimensionar
+            drawSingleChart(tempCtx, temperatureCanvas, temperatureData, '#ffc107', 'Temperatura (C)', 15, 35);
+            drawSingleChart(humCtx, humidityCanvas, humidityData, '#007bff', 'Humedad (%)', 0, 100);
+        });
+
+
+        // Funcion para dibujar una grafica especifica
+        function drawSingleChart(ctx, canvas, data, color, yLabelText, minVal, maxVal) {
+            // Asegurarse de que el canvas tiene el tamaño correcto antes de dibujar
+            // No llamar setCanvasSize aqui para evitar bucles infinitos con el resize event
+            // setCanvasSize(canvas); // Esto debe ser llamado desde window.onload y resize event
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpiar el canvas
+
+            // Dimensiones del canvas
+            const padding = 50; // Aumentar el padding para el texto del eje Y
+            // Asegurarse de que el padding no exceda las dimensiones del canvas
+            const chartWidth = Math.max(0, canvas.width - 2 * padding);
+            const chartHeight = Math.max(0, canvas.height - 2 * padding);
+
+            // Evitar dibujar si las dimensiones son inválidas
+            if (chartWidth <= 0 || chartHeight <= 0) {
+                console.warn("Canvas dimensions too small to draw chart.");
+                return;
+            }
+
+            // Dibujar ejes
+            ctx.strokeStyle = '#888'; // Color de los ejes
+            ctx.lineWidth = 1;
+
+            // Eje Y
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, canvas.height - padding);
+            ctx.stroke();
+
+            // Eje X
+            ctx.beginPath();
+            ctx.moveTo(padding, canvas.height - padding);
+            ctx.lineTo(canvas.width - padding, canvas.height - padding);
+            ctx.stroke();
+
+            ctx.fillStyle = '#f0f0f0'; // Color para el texto de las etiquetas
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'right';
+
+            // Etiquetas del eje Y
+            let currentMax = maxVal;
+            let currentMin = minVal;
+
+            if (data.length > 0) {
+                // Ajustar el margen superior e inferior dinamicamente
+                const dataMax = Math.max(...data);
+                const dataMin = Math.min(...data);
+                
+                // Si todos los datos son iguales, asegurar un rango para evitar division por cero
+                if (dataMax === dataMin) {
+                    currentMax = dataMax + 5; // Un pequeño rango si los datos son planos
+                    currentMin = dataMin - 5;
+                } else {
+                    currentMax = dataMax + (dataMax - dataMin) * 0.1; // 10% de margen superior
+                    currentMin = dataMin - (dataMax - dataMin) * 0.1; // 10% de margen inferior
+                }
+            }
+            
+            const range = currentMax - currentMin;
+            const numYLabels = 5;
+
+            for (let i = 0; i <= numYLabels; i++) {
+                const value = currentMin + (range / numYLabels) * i;
+                const y = canvas.height - padding - (value - currentMin) / range * chartHeight;
+                ctx.fillText(value.toFixed(1), padding - 5, y + 4);
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(padding + 5, y);
+                ctx.stroke();
+            }
+            
+            // Dibujar etiqueta del eje Y (rotada y movida mas a la izquierda)
+            ctx.textAlign = 'center'; // Centrar el texto para la rotacion
+            ctx.save(); // Guardar el estado actual del contexto
+            ctx.translate(padding / 2 - 15, canvas.height / 2); // Mover el origen al centro del texto Y y mas a la izquierda
+            ctx.rotate(-Math.PI / 2); // Rotar 90 grados
+            ctx.fillText(yLabelText, 0, 0); // Dibujar el texto
+            ctx.restore(); // Restaurar el estado anterior
+
+
+            // Etiquetas del eje X (puntos de datos)
+            ctx.textAlign = 'center';
+            if (timestamps.length > 0) {
+                // Calcular el espaciado dinamico para las etiquetas del eje X
+                const labelCount = timestamps.length;
+                const minPixelsPerLabel = 60; // Pixeles minimos deseados por etiqueta
+                const maxLabelsToShow = Math.floor(chartWidth / minPixelsPerLabel);
+                const step = Math.max(1, Math.ceil(labelCount / maxLabelsToShow));
+
+
+                for (let i = 0; i < labelCount; i++) {
+                    if (i % step === 0) { // Mostrar etiquetas con un paso calculado
+                        const x = padding + (chartWidth / (MAX_DATA_POINTS - 1)) * i;
+                        const date = new Date(timestamps[i] * 1000); // Convertir segundos a milisegundos
+                        const label = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        ctx.fillText(label, x, canvas.height - padding + 15);
+                    }
+                }
+            }
+
+
+            // Dibujar la linea de datos
+            if (data.length > 1) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let i = 0; i < data.length; i++) {
+                    const x = padding + (chartWidth / (MAX_DATA_POINTS - 1)) * i;
+                    // Asegurarse de que y esta dentro de los limites de dibujo
+                    const y = Math.max(padding, Math.min(canvas.height - padding, canvas.height - padding - (data[i] - currentMin) / range * chartHeight));
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+            }
+        }
+
+        // Funcion para obtener los datos del sensor
+        async function fetchData() {
+            try {
+                const response = await fetch('/data');
+                const data = await response.json();
+
+                if (data.temperature !== null && data.humidity !== null) {
+                    // Actualizar los valores en el data-display
+                    temperatureSpan.textContent = data.temperature.toFixed(1);
+                    humiditySpan.textContent = data.humidity.toFixed(1);
+
+                    // Anadir datos al historial y mantener el tamano maximo
+                    if (temperatureData.length >= MAX_DATA_POINTS) {
+                        temperatureData.shift();
+                        humidityData.shift();
+                        timestamps.shift();
+                    }
+                    temperatureData.push(data.temperature);
+                    humidityData.push(data.humidity);
+                    timestamps.push(data.timestamp);
+
+                    // Dibujar ambas graficas
+                    // Asegurarse de que el canvas esta dimensionado antes de dibujar
+                    setCanvasSize(temperatureCanvas);
+                    setCanvasSize(humidityCanvas);
+
+                    drawSingleChart(tempCtx, temperatureCanvas, temperatureData, '#ffc107', 'Temperatura (C)', 15, 35); // Amarillo para temperatura
+                    drawSingleChart(humCtx, humidityCanvas, humidityData, '#007bff', 'Humedad (%)', 0, 100);     // Azul para humedad
+
+                } else {
+                    temperatureSpan.textContent = 'Error';
+                    humiditySpan.textContent = 'Error';
+                    console.error('No se pudieron obtener datos validos del sensor.');
+                }
+            } catch (error) {
+                console.error('Error al obtener los datos:', error);
+                temperatureSpan.textContent = 'N/A';
+                humiditySpan.textContent = 'N/A';
+            }
+        }
+
+        // Cargar datos iniciales y luego actualizar periodicamente
+        window.onload = () => {
+            // Inicializar el tamaño del canvas al cargar
+            setCanvasSize(temperatureCanvas);
+            setCanvasSize(humidityCanvas);
+            fetchData(); // Obtener datos al cargar la pagina
+            setInterval(fetchData, UPDATE_INTERVAL); // Configurar la actualizacion automatica
+        };
+    </script>
+</body>
+</html>
